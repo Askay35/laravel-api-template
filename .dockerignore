@@ -1,0 +1,6 @@
+backend/
+.git/
+.gitignore
+README.md
+.env
+.vscode
