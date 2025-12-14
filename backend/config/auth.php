@@ -44,6 +44,8 @@ return [
 
     'token_lifetime' => env('TOKEN_LIFETIME', 60*60*3), // 3 hours
 
+    'refresh_token_lifetime' => env('REFRESH_TOKEN_LIFETIME', 60*24*14), // 14 days
+
     /*
     |--------------------------------------------------------------------------
     | User Providers

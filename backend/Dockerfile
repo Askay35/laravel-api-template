@@ -5,8 +5,9 @@ WORKDIR /var/www/html
 RUN apk add --no-cache \
     postgresql-dev \
     libpq \
+    linux-headers \
     $PHPIZE_DEPS \
-    && docker-php-ext-install pdo pdo_pgsql \
+    && docker-php-ext-install pdo pdo_pgsql sockets \
     && apk del $PHPIZE_DEPS postgresql-dev
 
 RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \

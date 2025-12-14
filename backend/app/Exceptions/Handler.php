@@ -2,8 +2,12 @@
 
 namespace App\Exceptions;
 
+use App\Http\Resources\MessageResource;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Auth\AuthenticationException;
 use Throwable;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class Handler extends ExceptionHandler
 {
@@ -24,7 +28,19 @@ class Handler extends ExceptionHandler
     public function register(): void
     {
         $this->reportable(function (Throwable $e) {
-            //
+            
         });
+    }
+
+    /**
+     * Convert an authentication exception into a response.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Illuminate\Auth\AuthenticationException  $exception
+     * @return \Illuminate\Http\JsonResponse
+     */
+    protected function unauthenticated($request, AuthenticationException $exception): JsonResponse
+    {
+        return response()->json(MessageResource::make(__('messages.unauthenticated')), 401);
     }
 }

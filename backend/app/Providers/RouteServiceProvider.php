@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Enums\Locale;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -31,13 +30,11 @@ class RouteServiceProvider extends ServiceProvider
 
         $this->routes(function () {
             Route::middleware('api')
-                ->prefix('api/v1/{locale?}')
-                ->where(['locale' => implode('|', Locale::values())])
-                ->middleware('locale')
+                ->prefix('api/v1')
                 ->group(base_path('routes/api/v1.php'));
 
-            Route::middleware('web')
-                ->group(base_path('routes/web.php'));
+            // Route::middleware('web')
+            //     ->group(base_path('routes/web.php'));
         });
     }
 }

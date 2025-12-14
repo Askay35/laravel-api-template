@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\Contracts\Services\AuthServiceContract;
+use App\Contracts\Services\UserServiceContract;
 use App\Services\AuthService;
+use App\Services\UserService;
 
 class ServicesServiceProvider extends ServiceProvider
 {
@@ -15,6 +17,7 @@ class ServicesServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(AuthServiceContract::class, AuthService::class);
+        $this->app->bind(UserServiceContract::class, UserService::class);
     }
 
     /**
@@ -25,10 +28,16 @@ class ServicesServiceProvider extends ServiceProvider
         //
     }
 
+    /**
+     * Get the services provided by the provider.
+     *
+     * @return array
+     */
     public function provides(): array
-
     {
-        return [AuthServiceContract::class];
-
+        return [
+            AuthServiceContract::class,
+            UserServiceContract::class,
+        ];
     }
 }

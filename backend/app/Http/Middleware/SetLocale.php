@@ -17,8 +17,8 @@ class SetLocale
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $locale = $request->route('locale');
-        
+        $locale = $request->getPreferredLanguage();
+       
         if (Locale::isValid($locale)) {
             App::setLocale($locale);
         } else {

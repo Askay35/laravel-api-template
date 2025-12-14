@@ -1,8 +1,12 @@
 <?php
 
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\LogoutController;
+use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\ResendVerificationEmailController;
+use App\Http\Controllers\User\ShowUserController;
+use App\Http\Controllers\User\UpdateUserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,12 +23,26 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::post('/register', RegisterController::class);
+Route::prefix('auth')->group(function () {
 
-Route::middleware('auth:sanctum')->group(function(){
+    Route::post('/register', RegisterController::class);
+    Route::post('/login', LoginController::class);
+
     Route::get('/email/verify/{user}/{hash}', VerifyEmailController::class)
+        ->middleware('signed')
         ->name('verification.verify');
 
-    Route::post('/email/resend', ResendVerificationEmailController::class)
-        ->name('verification.resend');
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', LogoutController::class);
+
+        Route::post('/email/resend', ResendVerificationEmailController::class)
+            ->name('verification.resend');
+    });
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::put('/user', UpdateUserController::class);
+    Route::get('/user', ShowUserController::class);
+
 });

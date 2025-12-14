@@ -4,35 +4,59 @@ namespace App\Services;
 
 use App\Contracts\Services\AuthServiceContract;
 use App\DTO\Auth\RegisterDTO;
+use App\DTO\Auth\LoginDTO;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class AuthService implements AuthServiceContract
 {
-    public function register(RegisterDTO $registerDTO, string $locale): UserResource
+    public function register(RegisterDTO $registerDTO): UserResource
     {
         $user = User::create($registerDTO->toArray());
+        $user->refreshToken()->create();
 
-        $verificationUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            now()->addMinutes(60),
-            [
-                'locale' => $locale,
-                'user' => $user->id,
-                'hash' => sha1($user->email)
-            ]
-        );
-
-        (new MailMessage)->greeting('Здравствуйте, '.$user->name)
-        ->line('Нажмите на кнопку ниже для подтверждения электронной почты')
-        ->action('Подтвердить электронную почту', $verificationUrl)
-        ->line('Если вы не создавали учетную запись, никаких дальнейших действий не требуется.');       
- 
         event(new Registered($user));
 
-        return UserResource::make($user)->additional(['token' => $user->createToken()->plainTextToken]);
+        return UserResource::make($user)->additional(['token' => $user->createToken('auth-token')->plainTextToken]);
+    }
+
+    public function login(LoginDTO $loginDTO): UserResource
+    {
+        $user = User::where('email', $loginDTO->email)->first();
+        
+        if (!$user) {
+            throw ValidationException::withMessages([
+                'email' => [__('messages.email_not_found')],
+            ]);
+        }
+
+        if (!Hash::check($loginDTO->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'password' => [__('messages.password_incorrect')],
+            ]);
+        }
+
+        if ($user->refreshToken->isExpired()) {
+            $user->refreshToken->regenerate();
+        }
+
+        if (Cache::has('token_'.$user->id)) {
+            return UserResource::make($user)->additional(['token' => Cache::get('token_'.$user->id)]);
+        }
+        
+        $token = Cache::remember('token_'.$user->id, config('auth.token_lifetime'), function () use ($user) {
+            return $user->createToken('auth-token')->plainTextToken;
+        });
+
+        return UserResource::make($user)->additional(['token' => $token]);
+    }
+
+    public function logout(User $user): void
+    {
+        $user->tokens()->delete();
     }
 }
