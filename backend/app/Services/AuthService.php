@@ -68,7 +68,7 @@ class AuthService implements AuthServiceContract
 
     public function refreshToken(User $user, string $refreshToken): JsonResponse
     {
-        if ($user->refreshToken->isExpired()) {            
+        if ($user->refreshToken->isExpired() || !$user->refreshToken->token) {            
             $this->deleteAccessToken($user);
 
             if (!$refreshToken) {
