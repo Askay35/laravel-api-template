@@ -15,8 +15,8 @@ return new class extends Migration
             Schema::create('refresh_tokens', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('user_id')->constrained('users');
-                $table->string('token');
-                $table->timestamp('expires_at')->default(now()->addMinutes(config('auth.refresh_token_lifetime')));
+                $table->string('token')->nullable();
+                $table->timestamp('expires_at')->nullable()->default(now()->addMinutes(config('auth.refresh_token_lifetime')));
                 $table->timestamps();
             });
         }

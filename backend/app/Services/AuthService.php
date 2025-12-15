@@ -66,11 +66,11 @@ class AuthService implements AuthServiceContract
         return $this->createTokenResponse($user, $refreshToken, $token);
     }
 
-    public function updateToken(User $user, string $refreshToken): JsonResponse
+    public function refreshToken(User $user, string $refreshToken): JsonResponse
     {
-        if ($user->refreshToken->isExpired()) {
+        if ($user->refreshToken->isExpired()) {            
             $this->deleteAccessToken($user);
-            
+
             if (!$refreshToken) {
                 return response()->json(MessageResource::make(__('messages.refresh_token_not_found')), 401);
             }
@@ -101,7 +101,11 @@ class AuthService implements AuthServiceContract
     public function deleteAllTokens(User $user): void
     {
         $user->tokens()->delete();
-        $user->refreshToken()->delete();
+        if ($user->refreshToken) {
+            $user->refreshToken->token = null;
+            $user->refreshToken->expires_at = null;
+            $user->refreshToken->save();
+        }
         Cache::forget('token_'.$user->id);
     }
 

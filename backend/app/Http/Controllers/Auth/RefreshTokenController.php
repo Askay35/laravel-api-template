@@ -15,7 +15,7 @@ class RefreshTokenController extends Controller
         $user = $request->user();
         $refreshToken = $request->cookies->get('refresh_token');
         
-        $response = $authService->updateToken($user, $refreshToken);
+        $response = $authService->refreshToken($user, $refreshToken);
         
         return $response;
     }

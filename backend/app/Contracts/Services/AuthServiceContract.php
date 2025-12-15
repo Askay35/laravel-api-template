@@ -15,5 +15,5 @@ interface AuthServiceContract
     public function logout(User $user): void;
     public function deleteAllTokens(User $user): void;
     public function deleteAccessToken(User $user): void;
-    public function updateToken(User $user, string $refreshToken): JsonResponse;
+    public function refreshToken(User $user, string $refreshToken): JsonResponse;
 }
