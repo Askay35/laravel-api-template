@@ -9,4 +9,7 @@ return [
     'email_not_found' => 'User with this email not found',
     'password_incorrect' => 'Password is incorrect',
     'unauthenticated' => 'Unauthenticated',
+    'refresh_token_expired' => 'Refresh token has expired',
+    'refresh_token_not_found' => 'Refresh token not found',
+    'refresh_token_mismatch' => 'Refresh token mismatch',
 ];

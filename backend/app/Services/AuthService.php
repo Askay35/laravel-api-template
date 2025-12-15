@@ -5,29 +5,40 @@ namespace App\Services;
 use App\Contracts\Services\AuthServiceContract;
 use App\DTO\Auth\RegisterDTO;
 use App\DTO\Auth\LoginDTO;
+use App\Http\Resources\MessageResource;
 use App\Http\Resources\UserResource;
+use App\Http\Resources\UserWithTokenResource;
+use App\Models\RefreshToken;
 use App\Models\User;
+use App\Services\CookieService;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthService implements AuthServiceContract
 {
-    public function register(RegisterDTO $registerDTO): UserResource
+    public function __construct(
+        private CookieService $cookieService
+    ) {
+    }
+
+    public function register(RegisterDTO $registerDTO): UserWithTokenResource
     {
         $user = User::create($registerDTO->toArray());
         $user->refreshToken()->create();
 
         event(new Registered($user));
 
-        return UserResource::make($user)->additional(['token' => $user->createToken('auth-token')->plainTextToken]);
+        return UserWithTokenResource::make($user);
     }
-
-    public function login(LoginDTO $loginDTO): UserResource
+    
+    public function login(LoginDTO $loginDTO): JsonResponse
     {
         $user = User::where('email', $loginDTO->email)->first();
-        
+
         if (!$user) {
             throw ValidationException::withMessages([
                 'email' => [__('messages.email_not_found')],
@@ -40,23 +51,68 @@ class AuthService implements AuthServiceContract
             ]);
         }
 
-        if ($user->refreshToken->isExpired()) {
-            $user->refreshToken->regenerate();
+        $user->refreshToken->regenerate();
+        
+        if (Cache::has('token_'.$user->id)) {
+            $token = Cache::get('token_'.$user->id);
+        } else {
+            $token = Cache::remember('token_'.$user->id, config('auth.token_lifetime'), function () use ($user) {
+                return $user->createToken('auth-token')->plainTextToken;
+            });
         }
 
-        if (Cache::has('token_'.$user->id)) {
-            return UserResource::make($user)->additional(['token' => Cache::get('token_'.$user->id)]);
+        $refreshToken = $user->refreshToken->token;
+
+        return $this->createTokenResponse($user, $refreshToken, $token);
+    }
+
+    public function updateToken(User $user, string $refreshToken): JsonResponse
+    {
+        if ($user->refreshToken->isExpired()) {
+            $this->deleteAccessToken($user);
+            
+            if (!$refreshToken) {
+                return response()->json(MessageResource::make(__('messages.refresh_token_not_found')), 401);
+            }
+            if (!$user->refreshToken->token === $refreshToken) {
+                return response()->json(MessageResource::make(__('messages.refresh_token_mismatch')), 401);
+            }
+            return response()->json(MessageResource::make(__('messages.refresh_token_expired')), 401);
         }
         
         $token = Cache::remember('token_'.$user->id, config('auth.token_lifetime'), function () use ($user) {
             return $user->createToken('auth-token')->plainTextToken;
         });
+        
+        return $this->createTokenResponse($user, $refreshToken, $token);
+    }
 
-        return UserResource::make($user)->additional(['token' => $token]);
+    private function createTokenResponse(User $user, string $refreshToken, string $token): JsonResponse
+    {
+        $cookie = $this->cookieService->createRefreshTokenCookie($refreshToken);
+
+        $response = response()->json(UserWithTokenResource::make($user));
+
+        $response->headers->setCookie($cookie);
+
+        return $response;
+    }
+
+    public function deleteAllTokens(User $user): void
+    {
+        $user->tokens()->delete();
+        $user->refreshToken()->delete();
+        Cache::forget('token_'.$user->id);
+    }
+
+    public function deleteAccessToken(User $user): void
+    {
+        $user->tokens()->delete();
+        Cache::forget('token_'.$user->id);
     }
 
     public function logout(User $user): void
     {
-        $user->tokens()->delete();
+        $this->deleteAllTokens($user);
     }
 }

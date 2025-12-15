@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\ResendVerificationEmailController;
+use App\Http\Controllers\Auth\RefreshTokenController;
 use App\Http\Controllers\User\ShowUserController;
 use App\Http\Controllers\User\UpdateUserController;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +35,7 @@ Route::prefix('auth')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', LogoutController::class);
+        Route::get('/refresh', RefreshTokenController::class);
 
         Route::post('/email/resend', ResendVerificationEmailController::class)
             ->name('verification.resend');
